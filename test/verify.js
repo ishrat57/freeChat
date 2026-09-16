@@ -1258,6 +1258,7 @@ async function runAllTests() {
     console.log('\n====================================================');
     console.log('🎉 ALL AUTOMATED VERIFICATION TESTS PASSED SUCCESSFULLY!');
     console.log('====================================================\n');
+    process.exit(0);
   } catch (err) {
     console.error('❌ Verification failed:', err);
     process.exit(1);

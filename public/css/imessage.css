@@ -312,7 +312,44 @@
   flex-direction: column;
   max-width: 68%;
   position: relative;
-  animation: bubblePop 0.28s var(--spring-bounce) forwards;
+}
+
+.message-row.live-sent {
+  animation: liveSendPop 0.32s var(--spring-overshoot) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes liveSendPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(22px);
+  }
+  75% {
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.message-row.live-received {
+  animation: liveReceivePop 0.3s var(--spring-overshoot) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes liveReceivePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(12px) translateX(-4px);
+  }
+  75% {
+    transform: scale(1.02) translateY(-1px) translateX(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes bubblePop {
@@ -324,6 +361,12 @@
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
 }
 
 .message-row.sent {
@@ -345,6 +388,7 @@
   user-select: text;
   position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: border-radius var(--duration-normal) var(--spring-gentle);
 }
 
 .message-row.sent .bubble {
@@ -386,6 +430,8 @@
   height: 16px;
   pointer-events: none;
   z-index: 1;
+  transition: opacity 0.22s ease, transform 0.22s var(--spring-gentle);
+  transform-origin: bottom center;
 }
 
 .message-row.sent .bubble-tail {
@@ -397,6 +443,16 @@
   left: -7px;
   transform: scaleX(-1);
   fill: var(--bg-bubble-received);
+}
+
+.message-row.clustered .bubble-tail {
+  opacity: 0;
+  transform: scale(0.2);
+  pointer-events: none;
+}
+
+.message-row.clustered.received .bubble-tail {
+  transform: scaleX(-1) scale(0.2);
 }
 
 .bubble-meta {
@@ -428,6 +484,10 @@
 .delivery-badge.failed:hover {
   transform: scale(1.05);
   text-decoration: underline;
+}
+
+.message-row.failed {
+  animation: shakeError 0.38s var(--spring-smooth);
 }
 
 .message-row.failed .bubble {
@@ -559,7 +619,36 @@
   border-radius: 19px 19px 19px 4px;
   width: fit-content;
   margin-bottom: 6px;
-  animation: bubblePop 0.25s var(--spring-bounce) forwards;
+  animation: typingBubbleEnter 0.28s var(--spring-overshoot) forwards;
+  transform-origin: bottom left;
+  will-change: transform, opacity;
+}
+
+.typing-bubble.collapsing {
+  animation: typingBubbleExit 0.2s var(--spring-smooth) forwards;
+  pointer-events: none;
+}
+
+@keyframes typingBubbleEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes typingBubbleExit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
 }
 
 .typing-dot {
@@ -567,8 +656,9 @@
   height: 7px;
   border-radius: 50%;
   background: var(--text-secondary);
-  opacity: 0.6;
+  opacity: 0.5;
   animation: typingDot 1.4s infinite ease-in-out;
+  transform-origin: center center;
 }
 
 .typing-dot:nth-child(1) { animation-delay: 0s; }
@@ -577,11 +667,11 @@
 
 @keyframes typingDot {
   0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
+    transform: translateY(0) scale(0.85);
+    opacity: 0.45;
   }
   30% {
-    transform: translateY(-5px);
+    transform: translateY(-5px) scale(1.18);
     opacity: 1;
   }
 }
@@ -694,19 +784,31 @@
   cursor: pointer;
   flex-shrink: 0;
   margin-bottom: 3px;
-  transition: all var(--duration-fast) var(--spring-bounce);
-  opacity: 0.4;
+  transition: opacity var(--duration-fast) ease, transform 0.28s var(--spring-overshoot), box-shadow 0.2s ease;
+  opacity: 0.35;
+  transform: scale(0.84);
   pointer-events: none;
 }
 
 .btn-send.active {
   opacity: 1;
   pointer-events: auto;
-  transform: scale(1.05);
+  transform: scale(1);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
+}
+
+.btn-send.active:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.45);
 }
 
 .btn-send.active:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
+}
+
+.btn-send.sending {
+  transform: scale(0.82);
+  transition-duration: 0.1s;
 }
 
 .btn-send svg {
@@ -993,5 +1095,39 @@
 
   .message-row {
     max-width: 82%;
+  }
+}
+
+/* Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .message-row,
+  .message-row.live-sent,
+  .message-row.live-received,
+  .message-row.failed,
+  .typing-bubble,
+  .typing-bubble.collapsing,
+  .btn-send,
+  .modal-overlay,
+  .glass-card,
+  .scroll-bottom-pill,
+  .ios-toast,
+  .sidebar,
+  .chat-pane {
+    transform: none !important;
+    animation: none !important;
+    transition: opacity 0.1s ease !important;
+  }
+
+  .typing-dot {
+    animation: none !important;
+    opacity: 0.7 !important;
+    transform: none !important;
   }
 }

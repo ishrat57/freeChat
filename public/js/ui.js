@@ -171,9 +171,10 @@ export function renderConversationItem(conv, currentUserId, isActive = false, on
   return div;
 }
 
-export function renderMessageBubble({ id, isMine, plainText, createdAt, isLastInCluster = true, isFailed = false, onRetry = null }) {
+export function renderMessageBubble({ id, isMine, plainText, createdAt, isLastInCluster = true, isFailed = false, onRetry = null, isLive = false }) {
   const row = document.createElement('div');
-  row.className = `message-row ${isMine ? 'sent' : 'received'} ${isLastInCluster ? 'has-tail' : 'clustered'} ${isFailed ? 'failed' : ''}`;
+  const liveClass = isLive ? (isMine ? 'live-sent' : 'live-received') : '';
+  row.className = `message-row ${isMine ? 'sent' : 'received'} ${isLastInCluster ? 'has-tail' : 'clustered'} ${isFailed ? 'failed' : ''} ${liveClass}`.trim();
   row.id = `msg-${id}`;
   row.dataset.timestamp = new Date(createdAt).getTime();
 
@@ -302,6 +303,22 @@ export function renderTypingIndicator(username) {
     <div class="typing-dot"></div>
   `;
   return div;
+}
+
+export function removeTypingIndicator(immediate = false) {
+  const existing = document.getElementById('active-typing-indicator');
+  if (!existing) return;
+  if (immediate) {
+    existing.remove();
+    return;
+  }
+  if (existing.classList.contains('collapsing')) return;
+  existing.classList.add('collapsing');
+  const cleanup = () => {
+    if (existing.parentNode) existing.remove();
+  };
+  existing.addEventListener('animationend', cleanup, { once: true });
+  setTimeout(cleanup, 250);
 }
 
 export function scrollToBottom(element, smooth = true) {

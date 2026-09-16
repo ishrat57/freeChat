@@ -33,6 +33,7 @@ import {
   renderConversationItem,
   renderMessageBubble,
   renderTypingIndicator,
+  removeTypingIndicator,
   renderDateDivider,
   formatDateDivider,
   scrollToBottom,
@@ -775,7 +776,8 @@ async function loadMessages(convId) {
         isMine,
         plainText,
         createdAt: msg.created_at,
-        isLastInCluster
+        isLastInCluster,
+        isLive: false
       });
       elements.messagesContainer.appendChild(bubble);
     }
@@ -790,6 +792,9 @@ async function loadMessages(convId) {
 async function handleSendMessage() {
   const text = elements.composerInput.value.trim();
   if (!text || !state.activeConversation || !state.activeSharedKey) return;
+
+  elements.sendBtn.classList.add('sending');
+  setTimeout(() => elements.sendBtn.classList.remove('sending'), 120);
 
   elements.composerInput.value = '';
   elements.composerInput.style.height = 'auto';
@@ -807,14 +812,12 @@ async function handleSendMessage() {
 
     ensureDateDivider(savedMsg.created_at);
 
-    // If the previous message was also sent by me within 2 minutes, cluster it and remove its tail
+    // If the previous message was also sent by me within 2 minutes, cluster it and transition its tail
     const lastRow = elements.messagesContainer.querySelector('.message-row:last-child');
     const isRecent = lastRow?.dataset.timestamp && (Date.now() - Number(lastRow.dataset.timestamp) < 120000);
     if (lastRow && lastRow.classList.contains('sent') && isRecent) {
       lastRow.classList.remove('has-tail');
       lastRow.classList.add('clustered');
-      const prevTail = lastRow.querySelector('.bubble-tail');
-      if (prevTail) prevTail.remove();
     }
 
     const bubble = renderMessageBubble({
@@ -822,7 +825,8 @@ async function handleSendMessage() {
       isMine: true,
       plainText: text,
       createdAt: savedMsg.created_at,
-      isLastInCluster: true
+      isLastInCluster: true,
+      isLive: true
     });
     elements.messagesContainer.appendChild(bubble);
     scrollToBottom(elements.messagesContainer, true);
@@ -855,6 +859,7 @@ async function handleSendMessage() {
       createdAt: new Date().toISOString(),
       isLastInCluster: true,
       isFailed: true,
+      isLive: true,
       onRetry: (retryText, failedRow) => {
         failedRow.remove();
         elements.composerInput.value = retryText;
@@ -878,19 +883,16 @@ async function handleIncomingMessage(msg) {
         plainText = await decryptMessage(msg.ciphertext, msg.iv, state.activeSharedKey);
       }
 
-      const existingTyping = document.getElementById('active-typing-indicator');
-      if (existingTyping) existingTyping.remove();
+      removeTypingIndicator(true);
 
       ensureDateDivider(msg.created_at);
 
-      // If the previous message was also received within 2 minutes, cluster it and remove its tail
+      // If the previous message was also received within 2 minutes, cluster it and transition its tail
       const lastRow = elements.messagesContainer.querySelector('.message-row:last-child');
       const isRecent = lastRow?.dataset.timestamp && (new Date(msg.created_at).getTime() - Number(lastRow.dataset.timestamp) < 120000);
       if (lastRow && lastRow.classList.contains('received') && isRecent) {
         lastRow.classList.remove('has-tail');
         lastRow.classList.add('clustered');
-        const prevTail = lastRow.querySelector('.bubble-tail');
-        if (prevTail) prevTail.remove();
       }
 
       const wasNearBottom = isMessagesScrolledNearBottom();
@@ -899,7 +901,8 @@ async function handleIncomingMessage(msg) {
         isMine: false,
         plainText,
         createdAt: msg.created_at,
-        isLastInCluster: true
+        isLastInCluster: true,
+        isLive: true
       });
       elements.messagesContainer.appendChild(bubble);
 
@@ -964,11 +967,10 @@ function handleTypingChange({ conversationId, username, isTyping }) {
     }
     // Auto-cleanup after 4 seconds if remote user closes tab or loses connection
     remoteTypingTimeout = setTimeout(() => {
-      const el = document.getElementById('active-typing-indicator');
-      if (el) el.remove();
+      removeTypingIndicator();
     }, 4000);
   } else if (existing) {
-    existing.remove();
+    removeTypingIndicator();
   }
 }
 

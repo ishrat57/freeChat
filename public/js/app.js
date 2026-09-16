@@ -269,6 +269,9 @@ function showAuthModal(mode = 'login') {
   elements.authModal.classList.add('active');
   elements.authCryptoStatus.textContent = '🔒 Zero-Knowledge Security Active';
   
+  const authTabs = elements.tabLogin?.closest('.auth-tabs');
+  if (authTabs) authTabs.dataset.tab = mode;
+
   if (mode === 'login') {
     elements.tabLogin.classList.add('active');
     elements.tabLogin.setAttribute('aria-selected', 'true');
@@ -384,6 +387,13 @@ async function handleAuthSubmit(e) {
   } catch (err) {
     console.error('[Auth Error]:', err);
     elements.authCryptoStatus.textContent = '❌ Authentication failed';
+    const authCard = elements.authModal.querySelector('.auth-card');
+    if (authCard) {
+      authCard.classList.remove('shake');
+      void authCard.offsetWidth;
+      authCard.classList.add('shake');
+    }
+    triggerHaptic('medium');
     showToast(err.message || 'Authentication error');
   } finally {
     elements.authSubmitBtn.disabled = false;
@@ -486,8 +496,6 @@ async function loadConversations() {
 }
 
 function renderConversationsList() {
-  elements.conversationsList.innerHTML = '';
-
   const q = state.searchQuery.toLowerCase().trim();
   const filteredConvs = q ? state.conversations.filter(c => {
     const otherParticipant = c.conversation_participants?.find(
@@ -520,23 +528,81 @@ function renderConversationsList() {
     return;
   }
 
+  // 1. FIRST: Capture current vertical positions of all existing conversation elements
+  const firstPositions = new Map();
+  const existingElements = new Map();
+  elements.conversationsList.querySelectorAll('.conv-item').forEach(el => {
+    const id = el.dataset.convId;
+    if (id) {
+      firstPositions.set(id, el.getBoundingClientRect().top);
+      existingElements.set(id, el);
+    }
+  });
+
+  // Remove empty state message if it was present
+  if (elements.conversationsList.querySelector('#sidebar-new-chat-cta')) {
+    elements.conversationsList.innerHTML = '';
+    existingElements.clear();
+    firstPositions.clear();
+  }
+
+  // Remove elements that no longer match the filter
+  const validIds = new Set(filteredConvs.map(c => c.id));
+  existingElements.forEach((el, id) => {
+    if (!validIds.has(id)) {
+      el.remove();
+      existingElements.delete(id);
+      firstPositions.delete(id);
+    }
+  });
+
+  // 2. Build or update items in sorted order
   filteredConvs.forEach(conv => {
     const isActive = state.activeConversation?.id === conv.id;
-    const item = renderConversationItem(conv, state.currentUser.id, isActive, state.onlineUsers);
-    
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      selectConversation(conv);
-    });
+    let item = existingElements.get(conv.id);
 
-    item.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    if (item) {
+      // Update active state
+      item.classList.toggle('active', isActive);
+
+      // Update time if available
+      const timeEl = item.querySelector('.conv-item-time');
+      if (timeEl && conv.updated_at) {
+        timeEl.textContent = formatTime(conv.updated_at);
+      }
+
+      // Update presence badge
+      const otherParticipant = conv.conversation_participants?.find(
+        p => (p.user_id || p.users?.id) !== state.currentUser.id
+      )?.users;
+      if (otherParticipant?.id) {
+        const badge = item.querySelector('.avatar-status-badge');
+        if (badge) {
+          const isOnline = state.onlineUsers.has(otherParticipant.id);
+          badge.classList.toggle('offline', !isOnline);
+        }
+      }
+
+      // Re-append to ensure DOM order matches sorted order
+      elements.conversationsList.appendChild(item);
+    } else {
+      // Create new item
+      item = renderConversationItem(conv, state.currentUser.id, isActive, state.onlineUsers);
+
+      item.addEventListener('click', (e) => {
         e.preventDefault();
         selectConversation(conv);
-      }
-    });
+      });
 
-    elements.conversationsList.appendChild(item);
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectConversation(conv);
+        }
+      });
+
+      elements.conversationsList.appendChild(item);
+    }
 
     // Decrypt last message snippet
     if (conv.last_message && state.localPrivateKey) {
@@ -558,6 +624,50 @@ function renderConversationsList() {
       }
     }
   });
+
+  // 3. LAST & INVERT: Measure new positions and compute delta
+  if (firstPositions.size > 0) {
+    const lastPositions = new Map();
+    elements.conversationsList.querySelectorAll('.conv-item').forEach(el => {
+      const id = el.dataset.convId;
+      if (id) {
+        lastPositions.set(id, el.getBoundingClientRect().top);
+      }
+    });
+
+    elements.conversationsList.querySelectorAll('.conv-item').forEach(el => {
+      const id = el.dataset.convId;
+      if (!id) return;
+
+      if (firstPositions.has(id)) {
+        const deltaY = firstPositions.get(id) - lastPositions.get(id);
+        if (deltaY !== 0) {
+          el.style.transform = `translateY(${deltaY}px)`;
+          el.style.transition = 'none';
+        }
+      } else {
+        // Brand new conversation item: animate in smoothly
+        el.classList.add('new-item');
+      }
+    });
+
+    // 4. PLAY: Transition to final position
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        elements.conversationsList.querySelectorAll('.conv-item').forEach(el => {
+          if (el.style.transform) {
+            el.style.transition = 'transform 0.35s var(--spring-overshoot)';
+            el.style.transform = '';
+            const onEnd = () => {
+              el.style.transition = '';
+              el.removeEventListener('transitionend', onEnd);
+            };
+            el.addEventListener('transitionend', onEnd, { once: true });
+          }
+        });
+      });
+    });
+  }
 }
 
 function updateChatHeaderPresence() {
@@ -704,6 +814,9 @@ function updateScrollBottomButtonVisibility() {
       if (elements.scrollBottomBadge) {
         elements.scrollBottomBadge.textContent = String(state.unreadWhileScrolledCount);
         elements.scrollBottomBadge.classList.remove('hidden');
+        elements.scrollBottomBadge.classList.remove('bump');
+        void elements.scrollBottomBadge.offsetWidth;
+        elements.scrollBottomBadge.classList.add('bump');
       }
       elements.scrollBottomBtn.classList.remove('hidden');
     } else if (distanceFromBottom > 240) {

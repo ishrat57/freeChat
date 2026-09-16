@@ -172,7 +172,8 @@
         <p id="auth-subtitle" style="font-size: 14px; color: var(--text-secondary);">Sign in with your private credentials</p>
       </div>
 
-      <div class="auth-tabs" role="tablist" aria-label="Authentication modes">
+      <div class="auth-tabs" id="auth-tabs" role="tablist" aria-label="Authentication modes" data-tab="login">
+        <div class="auth-tab-pill" id="auth-tab-pill" aria-hidden="true"></div>
         <button class="auth-tab active" id="tab-login" type="button" role="tab" aria-selected="true">Sign In</button>
         <button class="auth-tab" id="tab-register" type="button" role="tab" aria-selected="false">Create Account</button>
       </div>

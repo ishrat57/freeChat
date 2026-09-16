@@ -146,6 +146,22 @@
   cursor: pointer;
   transition: background var(--duration-fast) var(--spring-smooth);
   position: relative;
+  will-change: transform;
+}
+
+@keyframes convItemEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.conv-item.new-item {
+  animation: convItemEnter 0.32s var(--spring-overshoot) forwards;
 }
 
 .conv-item:hover {
@@ -858,6 +874,10 @@
   gap: 20px;
 }
 
+.auth-card.shake {
+  animation: shakeError 0.38s var(--spring-smooth);
+}
+
 .auth-header {
   text-align: center;
   display: flex;
@@ -890,6 +910,26 @@
   padding: 3px;
   border-radius: 12px;
   border: 1px solid var(--border-glass);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-tab-pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: var(--bg-modal);
+  border-radius: 9px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform var(--duration-normal) var(--spring-overshoot);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-tabs[data-tab="register"] .auth-tab-pill {
+  transform: translateX(100%);
 }
 
 .auth-tab {
@@ -903,13 +943,14 @@
   color: var(--text-secondary);
   border-radius: 9px;
   cursor: pointer;
-  transition: all var(--duration-fast);
+  position: relative;
+  z-index: 2;
+  transition: color var(--duration-fast);
 }
 
 .auth-tab.active {
-  background: var(--bg-modal);
+  background: transparent;
   color: var(--text-primary);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
@@ -1040,6 +1081,23 @@
   min-width: 18px;
   line-height: 15px;
   text-align: center;
+  transform-origin: center center;
+}
+
+@keyframes badgeBump {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.scroll-bottom-badge.bump {
+  animation: badgeBump 0.28s var(--spring-overshoot) forwards;
 }
 
 .scroll-bottom-badge.hidden {
@@ -1116,10 +1174,14 @@
   .btn-send,
   .modal-overlay,
   .glass-card,
+  .auth-card.shake,
+  .auth-tab-pill,
   .scroll-bottom-pill,
+  .scroll-bottom-badge.bump,
   .ios-toast,
   .sidebar,
-  .chat-pane {
+  .chat-pane,
+  .conv-item {
     transform: none !important;
     animation: none !important;
     transition: opacity 0.1s ease !important;

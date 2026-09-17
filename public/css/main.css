@@ -21,14 +21,62 @@ html, body {
 /* Background mesh */
 .app-background-mesh {
   position: fixed;
-  inset: 0;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
   z-index: 0;
-  background: 
-    radial-gradient(circle at 15% 15%, rgba(0, 122, 255, 0.15), transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(175, 82, 222, 0.12), transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(52, 199, 89, 0.08), transparent 50%),
-    var(--bg-app);
   pointer-events: none;
+  overflow: hidden;
+  background-color: var(--bg-app);
+}
+
+.app-background-mesh::before,
+.app-background-mesh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: blur(55px);
+  opacity: 0.85;
+  will-change: transform;
+}
+
+.app-background-mesh::before {
+  background: 
+    radial-gradient(circle at 25% 20%, rgba(0, 122, 255, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(175, 82, 222, 0.16), transparent 45%);
+  animation: meshFloat1 34s infinite ease-in-out alternate;
+}
+
+.app-background-mesh::after {
+  background: 
+    radial-gradient(circle at 75% 25%, rgba(52, 199, 89, 0.1), transparent 40%),
+    radial-gradient(circle at 25% 75%, rgba(10, 132, 255, 0.15), transparent 50%);
+  animation: meshFloat2 42s infinite ease-in-out alternate-reverse;
+}
+
+@keyframes meshFloat1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-3%, 3%, 0) scale(1.06) rotate(2.5deg);
+  }
+  100% {
+    transform: translate3d(3%, -3%, 0) scale(0.96) rotate(-2deg);
+  }
+}
+
+@keyframes meshFloat2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(3%, -2%, 0) scale(1.04) rotate(-2.5deg);
+  }
+  100% {
+    transform: translate3d(-3%, 3%, 0) scale(0.95) rotate(2deg);
+  }
 }
 
 /* Layout */

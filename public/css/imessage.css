@@ -1181,7 +1181,11 @@
   .ios-toast,
   .sidebar,
   .chat-pane,
-  .conv-item {
+  .conv-item,
+  .safety-number-block,
+  .safety-shield-icon,
+  .app-background-mesh::before,
+  .app-background-mesh::after {
     transform: none !important;
     animation: none !important;
     transition: opacity 0.1s ease !important;

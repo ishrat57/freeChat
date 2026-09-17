@@ -200,9 +200,23 @@ function initTheme() {
   updateThemeIcon(savedTheme);
 }
 
-function toggleTheme() {
+function toggleTheme(e) {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
+
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+  if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number' && (e.clientX !== 0 || e.clientY !== 0)) {
+    x = e.clientX;
+    y = e.clientY;
+  } else if (elements.themeToggleBtn) {
+    const rect = elements.themeToggleBtn.getBoundingClientRect();
+    x = rect.left + rect.width / 2;
+    y = rect.top + rect.height / 2;
+  }
+
+  document.documentElement.style.setProperty('--click-x', `${Math.round(x)}px`);
+  document.documentElement.style.setProperty('--click-y', `${Math.round(y)}px`);
 
   const applyTheme = () => {
     document.documentElement.setAttribute('data-theme', next);
@@ -1253,9 +1267,10 @@ async function openSafetyNumberModal() {
   // Render grid blocks
   elements.safetyNumberGrid.innerHTML = '';
   if (state.activeSafetyBlocks && state.activeSafetyBlocks.length > 0) {
-    state.activeSafetyBlocks.forEach(block => {
+    state.activeSafetyBlocks.forEach((block, index) => {
       const blockEl = document.createElement('div');
       blockEl.className = 'safety-number-block';
+      blockEl.style.setProperty('--block-index', String(index));
       blockEl.textContent = block;
       elements.safetyNumberGrid.appendChild(blockEl);
     });
@@ -1328,6 +1343,14 @@ function handleToggleVerifyContact() {
     state.activeContactVerified = true;
     state.activeKeyChanged = false;
     showToast(`@${state.activeTargetUser.username} marked as verified 🔒`);
+
+    const shield = elements.safetyNumberModal.querySelector('.safety-shield-icon');
+    if (shield) {
+      shield.classList.remove('pulse-success');
+      void shield.offsetWidth;
+      shield.classList.add('pulse-success');
+    }
+    triggerHaptic('double');
   }
 
   updateSafetyVerifyButtonState();
